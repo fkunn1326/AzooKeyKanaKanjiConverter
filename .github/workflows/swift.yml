@@ -89,8 +89,6 @@ jobs:
         os: [ubuntu-latest]
         swift-version:
           [{
-            branch: "swift-6.0.2-release",
-            tag: "swift-6.0.2-RELEASE",
             version: "6.0.2",
             android: "24-0.1",
             checksum: "d75615eac3e614131133c7cc2076b0b8fb4327d89dce802c25cd53e75e1881f4"
@@ -102,11 +100,11 @@ jobs:
     steps:
       - uses: compnerd/gha-setup-swift@main
         with:
-          branch: ${{ matrix.swift-version.branch }}
-          tag: ${{ matrix.swift-version.tag }}
+          branch: "swift-${{ matrix.swift-version.version }}-release"
+          tag: "${{ matrix.swift-version.version }}-RELEASE"
 
       - name: Setup Swift release Android SDK
-        run: swift sdk install https://github.com/finagolfin/swift-android-sdk/releases/download/${{ matrix.swift-version.version }}/${{ matrix.swift-version.tag }}-android-${{ matrix.swift-version.android }}.artifactbundle.tar.gz --checksum ${{ matrix.swift-version.checksum }}
+        run: swift sdk install https://github.com/finagolfin/swift-android-sdk/releases/download/${{ matrix.swift-version.version }}/swift-${{ matrix.swift-version.version }}-RELEASE-android-${{ matrix.swift-version.android }}.artifactbundle.tar.gz --checksum ${{ matrix.swift-version.checksum }}
       - uses: actions/checkout@v4
         with:
           path: AzooKeyKanaKanjiConverter
@@ -144,7 +142,7 @@ jobs:
           cp -r AzooKeyKanaKanjiConverter/.build/$TARGET/debug/AzooKeyKanakanjiConverter_KanaKanjiConverterModuleTests.resources pack
           cp -r AzooKeyKanaKanjiConverter/.build/$TARGET/debug/AzooKeyKanakanjiConverter_KanaKanjiConverterModuleWithDefaultDictionary.resources pack
           
-          cp ~/.config/swiftpm/swift-sdks/${{ matrix.guest-swift-version.branch }}-android-${{ matrix.guest-swift-version.android }}-*.artifactbundle/swift*sdk/android*sysroot/usr/lib/$(echo ${{ matrix.arch }} | sed "s/v7//")-linux-android*/${{ matrix.guest-swift-version.android }}/lib*so pack
+          cp ~/.config/swiftpm/swift-sdks/swift-${{ matrix.swift-version.version }}-RELEASE-android-${{ matrix.guest-swift-version.android }}-*.artifactbundle/swift*sdk/android*sysroot/usr/lib/$(echo ${{ matrix.arch }} | sed "s/v7//")-linux-android*/${{ matrix.guest-swift-version.android }}/lib*so pack
           rm pack/lib{c,dl,log,m}.so
 
           chmod +x ~/test-toolchain.sh

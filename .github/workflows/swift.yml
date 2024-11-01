@@ -119,7 +119,7 @@ jobs:
       - name: Build
         run: |
           cd AzooKeyKanaKanjiConverter
-          LLAMA_MOCK=1 ${TOOLCHAIN}/bin/swift build --build-tests --swift-sdk aarch64-unknown-linux-android24
+          LLAMA_MOCK=1 ${TOOLCHAIN}/bin/swift build --build-tests --swift-sdk ${{ matrix.arch }}-unknown-linux-android24
       - name: Get cached Termux app
         if: ${{ matrix.arch == 'x86_64' }}
         id: cache-termux

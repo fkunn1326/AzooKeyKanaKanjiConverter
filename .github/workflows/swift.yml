@@ -4,9 +4,7 @@
 name: Swift Build and Test
 on:
   push:
-    branches: ["main", "develop"]
   pull_request:
-    branches: ["main", "develop"]
 
 jobs:
   macos-build:

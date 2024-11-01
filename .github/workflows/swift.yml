@@ -98,13 +98,15 @@ jobs:
       ANDROID_API_LEVEL: 24
 
     steps:
-      - uses: compnerd/gha-setup-swift@main
-        with:
-          branch: "swift-${{ matrix.swift-version.version }}-release"
-          tag: "${{ matrix.swift-version.version }}-RELEASE"
+      - name: Setup Swift toolchain
+        run: |
+          curl -sL https://download.swift.org/swift-${{ matrix.swift-version.version }}-release/ubuntu2204/swift-${{ matrix.swift-version.version }}-RELEASE/swift-${{ matrix.swift-version.version }}-RELEASE-ubuntu22.04.tar.gz -o swift-toolchain.tar.gz
+          tar xf swift-toolchain.tar.gz
+          TOOLCHAIN=${PWD}/swift-${{ matrix.swift-version.version }}-RELEASE-ubuntu22.04/usr
+          ${TOOLCHAIN}/bin/swift --version
 
       - name: Setup Swift release Android SDK
-        run: swift sdk install https://github.com/finagolfin/swift-android-sdk/releases/download/${{ matrix.swift-version.version }}/swift-${{ matrix.swift-version.version }}-RELEASE-android-${{ matrix.swift-version.android }}.artifactbundle.tar.gz --checksum ${{ matrix.swift-version.checksum }}
+        run: ${TOOLCHAIN}/bin/swift sdk install https://github.com/finagolfin/swift-android-sdk/releases/download/${{ matrix.swift-version.version }}/swift-${{ matrix.swift-version.version }}-RELEASE-android-${{ matrix.swift-version.android }}.artifactbundle.tar.gz --checksum ${{ matrix.swift-version.checksum }}
       - uses: actions/checkout@v4
         with:
           path: AzooKeyKanaKanjiConverter
@@ -116,7 +118,7 @@ jobs:
       - name: Build
         run: |
           cd AzooKeyKanaKanjiConverter
-          LLAMA_MOCK=1 swift build --build-tests --swift-sdk aarch64-unknown-linux-android24
+          LLAMA_MOCK=1 ${TOOLCHAIN}/bin/swift build --build-tests --swift-sdk aarch64-unknown-linux-android24
       - name: Get cached Termux app
         if: ${{ matrix.arch == 'x86_64' }}
         id: cache-termux

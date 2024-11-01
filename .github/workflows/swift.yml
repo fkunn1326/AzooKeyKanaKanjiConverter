@@ -94,7 +94,9 @@ jobs:
           }]
         target-swift-version:
           [{
-            url: "https://github.com/finagolfin/swift-android-sdk/releases/download/6.0.2/swift-6.0.2-RELEASE-android-24-0.1.artifactbundle.tar.gz",
+            branch: "swift-6.0.2-RELEASE",
+            version: "6.0.2",
+            android: "24-0.1",
             checksum: "d75615eac3e614131133c7cc2076b0b8fb4327d89dce802c25cd53e75e1881f4"
           }]
 
@@ -108,7 +110,7 @@ jobs:
           tag: ${{ matrix.host-swift-version.tag }}
 
       - name: Setup Swift release Android SDK
-        run: swift sdk install ${{ matrix.target-swift-version.url }} --checksum ${{ matrix.target-swift-version.checksum }}
+        run: swift sdk install https://github.com/finagolfin/swift-android-sdk/releases/download/${{ matrix.guest-swift-version.version }}/${{ matrix.guest-swift-version.branch }}-android-${{ matrix.guest-swift-version.android }}.artifactbundle.tar.gz --checksum ${{ matrix.guest-swift-version.checksum }}
       - uses: actions/checkout@v4
         with:
           path: AzooKeyKanaKanjiConverter
@@ -116,7 +118,7 @@ jobs:
       - name: Build
         run: |
           cd AzooKeyKanaKanjiConverter
-          LLAMA_MOCK=1 ${TOOLCHAIN}/bin/swift build --build-tests --swift-sdk aarch64-unknown-linux-android24
+          LLAMA_MOCK=1 swift build --build-tests --swift-sdk aarch64-unknown-linux-android24
       - name: Get cached Termux app
         if: ${{ matrix.arch == 'x86_64' }}
         id: cache-termux
@@ -145,13 +147,9 @@ jobs:
 
           cp -r AzooKeyKanaKanjiConverter/.build/$TARGET/debug/AzooKeyKanakanjiConverter_KanaKanjiConverterModuleTests.resources pack
           cp -r AzooKeyKanaKanjiConverter/.build/$TARGET/debug/AzooKeyKanakanjiConverter_KanaKanjiConverterModuleWithDefaultDictionary.resources pack
-
-          cp sdk-config/swift-*-android-x86_64-*${ANDROID_API_LEVEL}-sdk/usr/lib/lib*so pack/lib
-          cp sdk-config/swift-*-android-x86_64-*${ANDROID_API_LEVEL}-sdk/usr/lib/swift/android/lib*so pack/lib/swift/android
-          mv pack/lib/libc++_shared.so pack/lib/swift/android
-          # need to free up some space or else the emulator fails to launch:
-          # ERROR   | Not enough space to create userdata partition. Available: 6086.191406 MB at /home/runner/.android/avd/../avd/test.avd, need 7372.800000 MB.
-          rm -rf sdk-config/${{ steps.check.outputs.release-tag }}-ubuntu22.04 */.build
+          
+          cp ~/.config/swiftpm/swift-sdks/${{ matrix.guest-swift-version.branch }}-android-${{ matrix.guest-swift-version.android }}-*.artifactbundle/swift*sdk/android*sysroot/usr/lib/$(echo ${{ matrix.arch }} | sed "s/v7//")-linux-android*/${{ matrix.guest-swift-version.android }}/lib*so pack
+          rm pack/lib{c,dl,log,m}.so
 
           chmod +x ~/test-toolchain.sh
 

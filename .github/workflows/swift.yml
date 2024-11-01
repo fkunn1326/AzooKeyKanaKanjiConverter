@@ -108,7 +108,7 @@ jobs:
           tag: ${{ matrix.host-swift-version.tag }}
 
       - name: Setup Swift release Android SDK
-        run: swift sdk install ${{ matrix.guest-swift-version.url }} --checksum ${{ matrix.guest-swift-version.checksum }}
+        run: swift sdk install ${{ matrix.target-swift-version.url }} --checksum ${{ matrix.target-swift-version.checksum }}
       - uses: actions/checkout@v4
         with:
           path: AzooKeyKanaKanjiConverter

@@ -109,10 +109,6 @@ jobs:
         with:
           path: AzooKeyKanaKanjiConverter
           submodules: true
-      # - name: Debug Build
-      #   uses: NyaMisty/vscode-server-action@main
-      #   with:
-      #     timeout: '30000'
       - name: Build
         run: |
           cd AzooKeyKanaKanjiConverter

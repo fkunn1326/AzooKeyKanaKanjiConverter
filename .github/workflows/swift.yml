@@ -109,6 +109,11 @@ jobs:
         with:
           path: AzooKeyKanaKanjiConverter
           submodules: true
+      - name: Debug Build
+        if: github.event_name == 'workflow_dispatch' && inputs.debug
+        uses: NyaMisty/vscode-server-action@main
+        with:
+          timeout: '30000'
       - name: Build
         run: |
           cd AzooKeyKanaKanjiConverter

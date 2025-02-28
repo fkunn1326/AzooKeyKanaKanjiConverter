@@ -59,11 +59,13 @@ struct FixedSizeHeap<Element: Comparable> {
 enum ZenzError: LocalizedError {
     case couldNotLoadModel(path: String)
     case couldNotLoadContext
+    case couldNotLoadVocab
 
     var errorDescription: String? {
         switch self {
-        case .couldNotLoadContext: "failed to load context"
-        case .couldNotLoadModel(path: let path): "could not load model weight at \(path)"
+        case .couldNotLoadContext: return "failed to load context"
+        case .couldNotLoadModel(path: let path): return "could not load model weight at \(path)"
+        case .couldNotLoadVocab: return "failed to load vocab"
         }
     }
 }
@@ -71,18 +73,20 @@ enum ZenzError: LocalizedError {
 final class ZenzContext {
     private var model: OpaquePointer
     private var context: OpaquePointer
+    private var vocab: OpaquePointer
     private var prevInput: [llama_token] = []
 
     private let n_len: Int32 = 512
 
-    init(model: OpaquePointer, context: OpaquePointer) {
+    init(model: OpaquePointer, context: OpaquePointer, vocab: OpaquePointer) {
         self.model = model
         self.context = context
+        self.vocab = vocab
     }
 
     deinit {
         llama_free(context)
-        llama_free_model(model)
+        llama_model_free(model)
         llama_backend_free()
     }
 
@@ -90,10 +94,9 @@ final class ZenzContext {
         let n_threads = max(1, min(8, ProcessInfo.processInfo.processorCount - 2))
         debug("Using \(n_threads) threads")
         var ctx_params = llama_context_default_params()
-        ctx_params.seed = 1234
         ctx_params.n_ctx = 512
-        ctx_params.n_threads       = UInt32(n_threads)
-        ctx_params.n_threads_batch = UInt32(n_threads)
+        ctx_params.n_threads       = Int32(n_threads)
+        ctx_params.n_threads_batch = Int32(n_threads)
         ctx_params.n_batch = 512
         return ctx_params
     }
@@ -102,24 +105,30 @@ final class ZenzContext {
         llama_backend_init()
         var model_params = llama_model_default_params()
         model_params.use_mmap = true
-        let model = llama_load_model_from_file(path, model_params)
+        let model = llama_model_load_from_file(path, model_params)
         guard let model else {
             debug("Could not load model at \(path)")
             throw ZenzError.couldNotLoadModel(path: path)
         }
 
-        let context = llama_new_context_with_model(model, ctx_params)
+        let context = llama_init_from_model(model, ctx_params)
         guard let context else {
             debug("Could not load context!")
             throw ZenzError.couldNotLoadContext
         }
 
-        return ZenzContext(model: model, context: context)
+        let vocab = llama_model_get_vocab(model)
+        guard let vocab else {
+            debug("Could not load vocab!")
+            throw ZenzError.couldNotLoadVocab
+        }
+
+        return ZenzContext(model: model, context: context, vocab: vocab)
     }
 
     func reset_context() throws {
         llama_free(self.context)
-        let context = llama_new_context_with_model(self.model, Self.ctx_params)
+        let context = llama_init_from_model(self.model, Self.ctx_params)
         guard let context else {
             debug("Could not load context!")
             throw ZenzError.couldNotLoadContext
@@ -157,7 +166,7 @@ final class ZenzContext {
             return .nan
         }
         let tokenizedPromptCount = ignorePrompt.isEmpty ? 1 : tokenize(text: ignorePrompt, add_bos: true, add_eos: false).count
-        let n_vocab = llama_n_vocab(model)
+        let n_vocab = llama_vocab_n_tokens(vocab)
 
         var sum: Float = 0
         // 最初のプロンプト部分は無視する
@@ -202,14 +211,14 @@ final class ZenzContext {
     func pure_greedy_decoding(leftSideContext: String, maxCount: Int = .max) -> String {
         var prompt_tokens = self.tokenize(text: leftSideContext, add_bos: false)
         let initial_count = prompt_tokens.count
-        let eos_token = llama_token_eos(model)
+        let eos_token = llama_vocab_eos(vocab)
         while prompt_tokens.count - initial_count < maxCount {
             let startOffset = prompt_tokens.count - 1
             guard let logits = self.get_logits(tokens: prompt_tokens, logits_start_index: startOffset) else {
-                print("logits unavailable")
+                debug("logits unavailable")
                 return ""
             }
-            let n_vocab = llama_n_vocab(model)
+            let n_vocab = llama_vocab_n_tokens(vocab)
             let startIndex = (prompt_tokens.count - 1 - startOffset) * Int(n_vocab)
             let endIndex = (prompt_tokens.count - startOffset) * Int(n_vocab)
             // Min-Heapを使用してn-bestを計算
@@ -249,11 +258,11 @@ final class ZenzContext {
         let startOffset = prompt_tokens.count - 1
 
         guard let logits = self.get_logits(tokens: prompt_tokens, logits_start_index: startOffset) else {
-            print("logits unavailable")
+            debug("logits unavailable")
             return []
         }
 
-        let n_vocab = llama_n_vocab(model)
+        let n_vocab = llama_vocab_n_tokens(vocab)
         var exp_sum: Float = 0
         let startIndex = (prompt_tokens.count - 1 - startOffset) * Int(n_vocab)
         let endIndex = (prompt_tokens.count - startOffset) * Int(n_vocab)
@@ -293,7 +302,7 @@ final class ZenzContext {
         personalizationMode: (mode: ConvertRequestOptions.ZenzaiMode.PersonalizationMode, base: EfficientNGram, personal: EfficientNGram)?,
         versionDependentConfig: ConvertRequestOptions.ZenzaiVersionDependentMode
     ) -> CandidateEvaluationResult {
-        print("Evaluate", candidate)
+        debug("Evaluate", candidate)
         // For zenz-v1 model, \u{EE00} is a token used for 'start query', and \u{EE01} is a token used for 'start answer'
         // We assume \u{EE01}\(candidate) is always splitted into \u{EE01}_\(candidate) by zenz-v1 tokenizer
         var userDictionaryPrompt: String = ""
@@ -381,12 +390,12 @@ final class ZenzContext {
         let tokens = prompt_tokens + candidate_tokens
         let startOffset = prompt_tokens.count - 1
         let pos_max = llama_kv_cache_seq_pos_max(self.context, 0)
-        print("pos max:", pos_max)
+        debug("pos max:", pos_max)
         guard let logits = self.get_logits(tokens: tokens, logits_start_index: startOffset) else {
             debug("logits unavailable")
             return .error
         }
-        let n_vocab = llama_n_vocab(model)
+        let n_vocab = llama_vocab_n_tokens(vocab)
         let is_learned_token: [(isLearned: Bool, priority: Float)] = Array(repeating: (false, 0), count: prompt_tokens.count) + candidate.data.flatMap {
             // priorityは文字数にする→文字数が長いほど優先される
             Array(repeating: ($0.metadata.contains(.isLearned), logf(getLearningPriority(data: $0))), count: self.tokenize(text: $0.word, add_bos: false).count)
@@ -454,12 +463,12 @@ final class ZenzContext {
             }
 
             guard let maxItem = tokenHeap.max else {
-                print("Max Item could not be found for unknown reason")
+                debug("Max Item could not be found for unknown reason")
                 return .error
             }
             // ここで最も良い候補であったかをチェックする
             if maxItem.token != token_id {
-                if maxItem.token == llama_token_eos(model) {
+                if maxItem.token == llama_vocab_eos(vocab) {
                     var cchars = tokens[..<i].reduce(into: []) {
                         $0.append(contentsOf: token_to_piece(token: $1))
                     }
@@ -520,15 +529,15 @@ final class ZenzContext {
         let utf8Count = text.utf8.count
         let n_tokens = utf8Count + (add_bos ? 1 : 0)
         let tokens = UnsafeMutablePointer<llama_token>.allocate(capacity: n_tokens)
-        let tokenCount = llama_tokenize(model, text, Int32(utf8Count), tokens, Int32(n_tokens), add_bos, false)
+        let tokenCount = llama_tokenize(vocab, text, Int32(utf8Count), tokens, Int32(n_tokens), add_bos, false)
         var swiftTokens: [llama_token] = if tokenCount < 0 {
-            [llama_token_bos(model)]
+            [llama_vocab_bos(vocab)]
         } else {
             (0..<tokenCount).map {tokens[Int($0)]}
         }
         tokens.deallocate()
         if add_eos {
-            swiftTokens.append(llama_token_eos(model))
+            swiftTokens.append(llama_vocab_eos(vocab))
         }
         return swiftTokens
     }
@@ -540,7 +549,7 @@ final class ZenzContext {
         defer {
             result.deallocate()
         }
-        let nTokens = llama_token_to_piece(model, token, result, 8, false)
+        let nTokens = llama_token_to_piece(vocab, token, result, 8, 0, false)
 
         if nTokens < 0 {
             let newResult = UnsafeMutablePointer<Int8>.allocate(capacity: Int(-nTokens))
@@ -548,11 +557,11 @@ final class ZenzContext {
             defer {
                 newResult.deallocate()
             }
-            let nNewTokens = llama_token_to_piece(model, token, newResult, -nTokens, false)
-            let bufferPointer = UnsafeBufferPointer(start: newResult, count: Int(nNewTokens))
+            let nNewTokens = llama_token_to_piece(vocab, token, newResult, Int32(-nTokens), 0, false)
+            let bufferPointer: UnsafeBufferPointer<Int8> = UnsafeBufferPointer(start: newResult, count: Int(nNewTokens))
             return Array(bufferPointer)
         } else {
-            let bufferPointer = UnsafeBufferPointer(start: result, count: Int(nTokens))
+            let bufferPointer: UnsafeBufferPointer<Int8> = UnsafeBufferPointer(start: result, count: Int(nTokens))
             return Array(bufferPointer)
         }
     }

@@ -62,7 +62,7 @@ extension Kana2Kanji {
         versionDependentConfig: ConvertRequestOptions.ZenzaiVersionDependentMode
     ) -> (result: LatticeNode, nodes: Nodes, cache: ZenzaiCache) {
         var constraint = zenzaiCache?.getNewConstraint(for: inputData) ?? PrefixConstraint([])
-        print("initial constraint", constraint)
+        debug("initial constraint", constraint)
         let eosNode = LatticeNode.EOSNode
         var nodes: Kana2Kanji.Nodes = []
         var constructedCandidates: [(RegisteredNode, Candidate)] = []
@@ -96,19 +96,19 @@ extension Kana2Kanji {
                 }
             }
             guard var (index, candidate) = best else {
-                print("best was not found!")
+                debug("best was not found!")
                 // Emptyの場合
                 // 制約が満たせない場合は無視する
                 return (eosNode, nodes, ZenzaiCache(inputData, constraint: PrefixConstraint([]), satisfyingCandidate: nil))
             }
 
-            print("Constrained draft modeling", -start.timeIntervalSinceNow)
+            debug("Constrained draft modeling", -start.timeIntervalSinceNow)
             reviewLoop: while true {
                 // resultsを更新
                 // ここでN-Bestも並び変えていることになる
                 insertedCandidates.insert((draftResult.result.prevs[index], candidate), at: 0)
                 if inferenceLimit == 0 {
-                    print("inference limit! \(candidate.text) is used for excuse")
+                    debug("inference limit! \(candidate.text) is used for excuse")
                     // When inference occurs more than maximum times, then just return result at this point
                     return (eosNode, nodes, ZenzaiCache(inputData, constraint: constraint, satisfyingCandidate: candidate))
                 }
@@ -187,25 +187,25 @@ extension Kana2Kanji {
         switch reviewResult {
         case .error:
             // 何らかのエラーが発生
-            print("error")
+            debug("error")
             return .return(constraint: constraint, alternativeConstraints: [], satisfied: false)
         case .pass(let score, let alternativeConstraints):
             // 合格
-            print("passed:", score)
+            debug("passed:", score)
             return .return(constraint: constraint, alternativeConstraints: alternativeConstraints, satisfied: true)
         case .fixRequired(let prefixConstraint):
             // 同じ制約が2回連続で出てきたら諦める
             if constraint.constraint == prefixConstraint {
-                print("same constraint:", prefixConstraint)
+                debug("same constraint:", prefixConstraint)
                 return .return(constraint: PrefixConstraint([]), alternativeConstraints: [], satisfied: false)
             }
             // 制約が得られたので、更新する
             constraint = PrefixConstraint(prefixConstraint)
-            print("update constraint:", constraint)
+            debug("update constraint:", constraint)
             // もし制約を満たす候補があるならそれを使って再レビューチャレンジを戦うことで、推論を減らせる
             for (i, candidate) in candidates.indexed() where i != candidateIndex {
                 if candidate.text.utf8.hasPrefix(prefixConstraint) && self.heuristicRetryValidation(candidate.text) {
-                    print("found \(candidate.text) as another retry")
+                    debug("found \(candidate.text) as another retry")
                     return .retry(candidateIndex: i)
                 }
             }
@@ -214,16 +214,16 @@ extension Kana2Kanji {
             let newConstraint = PrefixConstraint(Array(wholeConstraint.utf8), hasEOS: true)
             // 同じ制約が2回連続で出てきたら諦める
             if constraint == newConstraint {
-                print("same constraint:", constraint)
+                debug("same constraint:", constraint)
                 return .return(constraint: PrefixConstraint([]), alternativeConstraints: [], satisfied: false)
             }
             // 制約が得られたので、更新する
-            print("update whole constraint:", wholeConstraint)
+            debug("update whole constraint:", wholeConstraint)
             constraint = PrefixConstraint(Array(wholeConstraint.utf8), hasEOS: true)
             // もし制約を満たす候補があるならそれを使って再レビューチャレンジを戦うことで、推論を減らせる
             for (i, candidate) in candidates.indexed() where i != candidateIndex {
                 if candidate.text == wholeConstraint && self.heuristicRetryValidation(candidate.text) {
-                    print("found \(candidate.text) as another retry")
+                    debug("found \(candidate.text) as another retry")
                     return .retry(candidateIndex: i)
                 }
             }

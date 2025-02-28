@@ -104,14 +104,19 @@ extension LOUDS {
 
     }
 
-    static func getDataForLoudstxt3(_ identifier: String, indices: [Int], option: ConvertRequestOptions) -> [DicdataElement] {
+    static func getDataForLoudstxt3(_ identifier: String, indices: [Int], cache: Data? = nil, option: ConvertRequestOptions) -> [DicdataElement] {
         let binary: Data
-        do {
-            let url = getLoudstxt3URL(identifier, option: option)
-            binary = try Data(contentsOf: url)
-        } catch {
-            debug("getDataForLoudstxt3: \(error)")
-            return []
+        
+        if let cachedData = cache {
+            binary = cachedData
+        } else {
+            do {
+                let url = getLoudstxt3URL(identifier, option: option)
+                binary = try Data(contentsOf: url)
+            } catch {
+                debug("getDataForLoudstxt3: \(error)")
+                return []
+            }
         }
 
         let lc = binary[0..<2].toArray(of: UInt16.self)[0]
@@ -127,14 +132,19 @@ extension LOUDS {
     }
 
     /// indexとの対応を維持したバージョン
-    static func getDataForLoudstxt3(_ identifier: String, indices: [(trueIndex: Int, keyIndex: Int)], option: ConvertRequestOptions) -> [(loudsNodeIndex: Int, dicdata: [DicdataElement])] {
+    static func getDataForLoudstxt3(_ identifier: String, indices: [(trueIndex: Int, keyIndex: Int)], cache: Data? = nil, option: ConvertRequestOptions) -> [(loudsNodeIndex: Int, dicdata: [DicdataElement])] {
         let binary: Data
-        do {
-            let url = getLoudstxt3URL(identifier, option: option)
-            binary = try Data(contentsOf: url)
-        } catch {
-            debug("getDataForLoudstxt3: \(error)")
-            return []
+
+        if let cachedData = cache {
+            binary = cachedData
+        } else {
+            do {
+                let url = getLoudstxt3URL(identifier, option: option)
+                binary = try Data(contentsOf: url)
+            } catch {
+                debug("getDataForLoudstxt3: \(error)")
+                return []
+            }
         }
 
         let lc = binary[0..<2].toArray(of: UInt16.self)[0]

@@ -29,7 +29,7 @@ public struct ConvertRequestOptions: Sendable {
     ///   - sharedContainerURL: ユーザ辞書など、キーボード外で書き込んだ設定データの保存されているディレクトリを指定します。
     ///   - textReplacer: 予測変換のための置換機を指定します。
     ///   - metadata: メタデータを指定します。詳しくは`ConvertRequestOptions.Metadata`を参照してください。
-    public init(N_best: Int = 10, requireJapanesePrediction: Bool, requireEnglishPrediction: Bool, keyboardLanguage: KeyboardLanguage, typographyLetterCandidate: Bool = false, unicodeCandidate: Bool = true, englishCandidateInRoman2KanaInput: Bool = false, fullWidthRomanCandidate: Bool = false, halfWidthKanaCandidate: Bool = false, learningType: LearningType, maxMemoryCount: Int = 65536, shouldResetMemory: Bool = false, dictionaryResourceURL: URL, memoryDirectoryURL: URL, sharedContainerURL: URL, textReplacer: TextReplacer, zenzaiMode: ZenzaiMode = .off, metadata: ConvertRequestOptions.Metadata?) {
+    public init(N_best: Int = 10, requireJapanesePrediction: Bool, requireEnglishPrediction: Bool, keyboardLanguage: KeyboardLanguage, typographyLetterCandidate: Bool = false, unicodeCandidate: Bool = true, englishCandidateInRoman2KanaInput: Bool = false, fullWidthRomanCandidate: Bool = false, halfWidthKanaCandidate: Bool = false, learningType: LearningType, maxMemoryCount: Int = 65536, shouldResetMemory: Bool = false, dictionaryResourceURL: URL, memoryDirectoryURL: URL, sharedContainerURL: URL, textReplacer: TextReplacer, zenzaiMode: ZenzaiMode = .off, preloadDictionary: Bool = false, metadata: ConvertRequestOptions.Metadata?) {
         self.N_best = N_best
         self.requireJapanesePrediction = requireJapanesePrediction
         self.requireEnglishPrediction = requireEnglishPrediction
@@ -47,6 +47,7 @@ public struct ConvertRequestOptions: Sendable {
         self.metadata = metadata
         self.textReplacer = textReplacer
         self.zenzaiMode = zenzaiMode
+        self.preloadDictionary = preloadDictionary
         self.dictionaryResourceURL = dictionaryResourceURL
     }
 
@@ -69,9 +70,10 @@ public struct ConvertRequestOptions: Sendable {
     ///   - memoryDirectoryURL: 学習データの保存先を指定します。書き込み可能なディレクトリを指定してください。
     ///   - sharedContainerURL: ユーザ辞書など、キーボード外で書き込んだ設定データの保存されているディレクトリを指定します。
     ///   - textReplacer: 予測変換のための置換機を指定します。
+    ///   - preloadDictionary: 辞書の事前読み込みを行うかどうかを指定します。
     ///   - metadata: メタデータを指定します。詳しくは`ConvertRequestOptions.Metadata`を参照してください。
     @available(*, deprecated, message: "it be removed in AzooKeyKanaKanjiConverter v1.0")
-    public init(N_best: Int = 10, requireJapanesePrediction: Bool, requireEnglishPrediction: Bool, keyboardLanguage: KeyboardLanguage, typographyLetterCandidate: Bool = false, unicodeCandidate: Bool = true, englishCandidateInRoman2KanaInput: Bool = false, fullWidthRomanCandidate: Bool = false, halfWidthKanaCandidate: Bool = false, learningType: LearningType, maxMemoryCount: Int = 65536, shouldResetMemory: Bool = false, dictionaryResourceURL: URL, memoryDirectoryURL: URL, sharedContainerURL: URL, zenzaiMode: ZenzaiMode = .off, metadata: ConvertRequestOptions.Metadata?) {
+    public init(N_best: Int = 10, requireJapanesePrediction: Bool, requireEnglishPrediction: Bool, keyboardLanguage: KeyboardLanguage, typographyLetterCandidate: Bool = false, unicodeCandidate: Bool = true, englishCandidateInRoman2KanaInput: Bool = false, fullWidthRomanCandidate: Bool = false, halfWidthKanaCandidate: Bool = false, learningType: LearningType, maxMemoryCount: Int = 65536, shouldResetMemory: Bool = false, dictionaryResourceURL: URL, memoryDirectoryURL: URL, sharedContainerURL: URL, zenzaiMode: ZenzaiMode = .off, preloadDictionary: Bool = false, metadata: ConvertRequestOptions.Metadata?) {
         self.init(
             N_best: N_best,
             requireJapanesePrediction: requireJapanesePrediction,
@@ -91,6 +93,7 @@ public struct ConvertRequestOptions: Sendable {
             // MARK: using deprecated initializer here
             textReplacer: TextReplacer(),
             zenzaiMode: zenzaiMode,
+            preloadDictionary: preloadDictionary,
             metadata: metadata
         )
     }
@@ -115,6 +118,7 @@ public struct ConvertRequestOptions: Sendable {
     public var sharedContainerURL: URL
     public var dictionaryResourceURL: URL
     public var zenzaiMode: ZenzaiMode
+    public var preloadDictionary: Bool
     // メタデータ
     public var metadata: Metadata?
 
@@ -142,6 +146,7 @@ public struct ConvertRequestOptions: Sendable {
             // dummy data, won't work
             sharedContainerURL: Bundle.main.bundleURL,
             textReplacer: .empty,
+            preloadDictionary: false,
             metadata: nil
         )
     }

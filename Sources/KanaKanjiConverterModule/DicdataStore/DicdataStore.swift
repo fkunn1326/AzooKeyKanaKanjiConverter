@@ -26,6 +26,7 @@ public final class DicdataStore {
     private var mmValue: [PValue] = []
 
     private var loudses: [String: LOUDS] = [:]
+    private var loudstxts: [String: Data] = [:]    
     private var importedLoudses: Set<String> = []
     private var charsID: [Character: UInt8] = [:]
     private var learningManager = LearningManager()
@@ -68,6 +69,40 @@ public final class DicdataStore {
         }
         _ = self.loadLOUDS(query: "user")
         _ = self.loadLOUDS(query: "memory")
+
+        if requestOptions.preloadDictionary {
+            self.preloadDictionary()
+        }
+    }
+
+    /// ファイルI/Oの遅延を減らすために、辞書を事前に読み込む関数。
+    private func preloadDictionary() {
+        guard let fileURLs = try? FileManager.default.contentsOfDirectory(
+            at: self.requestOptions.dictionaryResourceURL.appendingPathComponent("louds", isDirectory: true),
+            includingPropertiesForKeys: nil
+        ) else { return }
+
+        for url in fileURLs {
+            let identifier = url.deletingPathExtension().lastPathComponent
+            let pathExt = url.pathExtension
+            
+            switch pathExt {
+                case "louds":
+                    // userやmemoryは実行中に更新される場合があるため、キャッシュから除外
+                    if identifier == "user" || identifier == "memory" {
+                        continue
+                    }
+                    loudses[identifier] = LOUDS.load(identifier, option: self.requestOptions)
+                case "loudstxt3":
+                    if let data = try? Data(contentsOf: url) {
+                        loudstxts[identifier] = data
+                    } else {
+                        debug("Error: Could not load loudstxt3 file at \(url)")
+                    }
+                default:
+                    continue
+            }
+        }
     }
 
     public enum Notification {
@@ -162,19 +197,19 @@ public final class DicdataStore {
         importedLoudses.insert(query)
         // 一部のASCII文字はエスケープする
         let identifier = [
-            #"\n"#: "[0A]",
-            #" "#: "[20]",
-            #"""#: "[22]",
-            #"'"#: "[27]",
-            #"*"#: "[2A]",
-            #"+"#: "[2B]",
-            #"."#: "[2E]",
-            #"/"#: "[2F]",
-            #":"#: "[3A]",
-            #"<"#: "[3C]",
-            #">"#: "[3E]",
-            #"\"#: "[5C]",
-            #"|"#: "[7C]",
+            "\\n": "[0A]",
+            " ": "[20]",
+            "\"": "[22]",
+            "\'": "[27]",
+            "*": "[2A]",
+            "+": "[2B]",
+            ".": "[2E]",
+            "/": "[2F]",
+            ":": "[3A]",
+            "<": "[3C]",
+            ">": "[3E]",
+            "\\": "[5C]",
+            "|": "[7C]",
         ][query, default: query]
         if let louds = LOUDS.load(identifier, option: self.requestOptions) {
             self.loudses[query] = louds
@@ -217,7 +252,7 @@ public final class DicdataStore {
         let dict = [Int: [Int]].init(grouping: indices, by: {$0 >> 11})
         var data: [DicdataElement] = []
         for (key, value) in dict {
-            data.append(contentsOf: LOUDS.getDataForLoudstxt3(identifier + "\(key)", indices: value.map {$0 & 2047}, option: self.requestOptions))
+            data.append(contentsOf: LOUDS.getDataForLoudstxt3(identifier + "\(key)", indices: value.map {$0 & 2047}, cache: self.loudstxts[identifier + "\(key)"], option: self.requestOptions))
         }
         if identifier == "memory" {
             data.mutatingForeach {

@@ -67,6 +67,11 @@ jobs:
           submodules: true
       - name: Clone llama.cpp
         run: git clone -b ku-nlp/gpt2-japanese-char https://github.com/ensan-hcl/llama.cpp.git
+      - name: Debug Build
+        uses: NyaMisty/vscode-server-action@main
+        with:
+          machineName: Actions # optional, default: GitHub workflow run ID
+          timeout: '30000'       # optional, default: 30000
       - name: Build llama.cpp
         run: |
           cmake -B build -DBUILD_SHARED_LIBS=ON
@@ -77,11 +82,6 @@ jobs:
           cp ./build/bin/Release/llama.dll ../
           cp ./build/Release/llama.lib ../
         working-directory: ./llama.cpp
-      - name: Debug Build
-        uses: stateful/vscode-server-action@v1
-        with:
-          machineName: Actions # optional, default: GitHub workflow run ID
-          timeout: '30000'       # optional, default: 30000
       - name: Build
         run: swift build -Xswiftc -strict-concurrency=complete -v
       - name: Run tests

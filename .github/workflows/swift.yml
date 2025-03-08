@@ -46,6 +46,9 @@ jobs:
   windows-build:
     name: Swift ${{ matrix.swift-version.tag }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    permissions:
+      actions: read
+      contents: read
     strategy:
       matrix:
         os: [windows-latest]
@@ -74,6 +77,11 @@ jobs:
           cp ./build/bin/Release/llama.dll ../
           cp ./build/Release/llama.lib ../
         working-directory: ./llama.cpp
+      - name: Debug Build
+        uses: stateful/vscode-server-action@v1
+        with:
+          machineName: Actions # optional, default: GitHub workflow run ID
+          timeout: '30000'       # optional, default: 30000
       - name: Build
         run: swift build -Xswiftc -strict-concurrency=complete -v
       - name: Run tests

@@ -58,8 +58,8 @@ jobs:
         uses: Cyberboss/install-winget@v1
       - name: Install Swift
         run: |
-          winget install --id Microsoft.VisualStudio.2022.Community --exact --force --custom "--add Microsoft.VisualStudio.Component.Windows11SDK.22000 --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.VC.Tools.ARM64"  --silent
-          winget install --id Swift.Toolchain -e -v ${{ matrix.swift-version }} --silent
+          winget install --id Microsoft.VisualStudio.2022.Community --exact --force --custom "--add Microsoft.VisualStudio.Component.Windows11SDK.22000 --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.VC.Tools.ARM64" --accept-package-agreements --accept-source-agreements --silent
+          winget install --id Swift.Toolchain -e -v ${{ matrix.swift-version }} --accept-package-agreements --accept-source-agreements --silent
       - uses: actions/checkout@v4
         with:
           submodules: true

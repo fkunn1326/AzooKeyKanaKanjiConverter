@@ -57,10 +57,6 @@ jobs:
             tag: "6.0.2-RELEASE"
           }]
     steps:
-      - uses: compnerd/gha-setup-vsdevenv@main
-        with:
-          components: 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64;Microsoft.VisualStudio.Component.VC.Tools.ARM64'
-          winsdk: ${{ env.WORKAROUND_WINDOWS_SDK_VERSION }}
       - uses: compnerd/gha-setup-swift@main
         with:
           branch: ${{ matrix.swift-version.branch }}

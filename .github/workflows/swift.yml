@@ -46,11 +46,9 @@ jobs:
   windows-build:
     name: Swift ${{ matrix.swift-version.tag }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    env: 
-      WORKAROUND_WINDOWS_SDK_VERSION: 10.0.22621.0
     strategy:
       matrix:
-        os: [windows-2019]
+        os: [windows-2022]
         swift-version:
           [{
             branch: "swift-6.0.2-release",

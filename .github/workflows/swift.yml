@@ -57,6 +57,8 @@ jobs:
             tag: "6.0.2-RELEASE"
           }]
     steps:
+      - name: Setup VS Dev Environment
+        uses: seanmiddleditch/gha-setup-vsdevenv@v5
       - uses: compnerd/gha-setup-swift@main
         with:
           branch: ${{ matrix.swift-version.branch }}

@@ -57,8 +57,6 @@ jobs:
             tag: "6.0.2-RELEASE"
           }]
     steps:
-    runs-on: windows-2019 # Windows SDK lower than 10.0.26100 is needed until https://github.com/swiftlang/swift/pull/79751 released!
-    steps:
       - uses: compnerd/gha-setup-swift@main
         with:
           branch: ${{ matrix.swift-version.branch }}

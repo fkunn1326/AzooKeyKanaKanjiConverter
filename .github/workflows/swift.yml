@@ -55,6 +55,11 @@ jobs:
             tag: "6.0.2-RELEASE"
           }]
     steps:
+      - name: Install MSVC Build Tools
+        run: |
+          Invoke-WebRequest -Uri https://aka.ms/vs/17/release/vs_buildtools.exe -OutFile vs_buildtools.exe
+          Start-Process -FilePath vs_buildtools.exe -ArgumentList "--quiet --wait --norestart --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64" -NoNewWindow -Wait
+        shell: pwsh
       - name: Setup VS Dev Environment
         uses: seanmiddleditch/gha-setup-vsdevenv@v5
         with:

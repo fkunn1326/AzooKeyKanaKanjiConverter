@@ -61,16 +61,22 @@ jobs:
         with:
           branch: ${{ matrix.swift-version.branch }}
           tag: ${{ matrix.swift-version.tag }}
+      - uses: compnerd/gha-setup-vsdevenv@f1ba60d553a3216ce1b89abe0201213536bc7557 # main
+        if: inputs.build_android
+        with:
+          components: 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64;Microsoft.VisualStudio.Component.VC.Tools.ARM64'
+          arch: amd64
+          winsdk: ${{ env.WORKAROUND_WINDOWS_SDK_VERSION }}
       - uses: actions/checkout@v4
         with:
           submodules: true
       - name: Clone llama.cpp
         run: git clone -b ku-nlp/gpt2-japanese-char https://github.com/ensan-hcl/llama.cpp.git
-      - name: Debug Build
-        uses: NyaMisty/vscode-server-action@main
-        with:
-          machineName: Actions # optional, default: GitHub workflow run ID
-          timeout: '30000'       # optional, default: 30000
+      # - name: Debug Build
+      #   uses: NyaMisty/vscode-server-action@main
+      #   with:
+      #     machineName: Actions # optional, default: GitHub workflow run ID
+      #     timeout: '30000'       # optional, default: 30000
       # - name: Build llama.cpp
       #   run: |
       #     cmake -B build -DBUILD_SHARED_LIBS=ON

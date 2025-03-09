@@ -57,6 +57,8 @@ jobs:
     steps:
       - name: Setup VS Dev Environment
         uses: seanmiddleditch/gha-setup-vsdevenv@v5
+        with:
+          components: Microsoft.VisualStudio.Component.VC.Tools.x86.x64;Microsoft.VisualStudio.Component.VC.Tools.ARM64;Microsoft.VisualStudio.Component.Windows11SDK.22000
       - uses: compnerd/gha-setup-swift@main
         with:
           branch: ${{ matrix.swift-version.branch }}

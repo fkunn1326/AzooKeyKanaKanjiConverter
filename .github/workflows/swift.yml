@@ -48,26 +48,46 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-2019]
+        os: [windows-latest]
         swift-version:
           [{
             branch: "swift-6.0.2-release",
             tag: "6.0.2-RELEASE"
           }]
     steps:
-      - name: Install MSVC Build Tools
-        run: |
-          Invoke-WebRequest -Uri https://aka.ms/vs/17/release/vs_buildtools.exe -OutFile vs_buildtools.exe
-          Start-Process -FilePath vs_buildtools.exe -ArgumentList "--quiet --wait --norestart --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64" -NoNewWindow -Wait
-        shell: pwsh
-      - name: Setup VS Dev Environment
-        uses: seanmiddleditch/gha-setup-vsdevenv@v5
-        with:
-          components: Microsoft.VisualStudio.Component.VC.Tools.x86.x64;Microsoft.VisualStudio.Component.VC.Tools.ARM64;Microsoft.VisualStudio.Component.Windows11SDK.22000
       - uses: compnerd/gha-setup-swift@main
         with:
           branch: ${{ matrix.swift-version.branch }}
           tag: ${{ matrix.swift-version.tag }}
+      - name: fix swift sdk
+        shell: pwsh
+        run: |
+          $SwiftPath = "$env:APPDATA\..\Local\Programs\Swift\Platforms\6.0.2\Windows.platform\Developer\SDKs\Windows.sdk\usr"
+
+          $files = @(
+            "lib\swift\windows\CRT.swiftmodule\x86_64-unknown-windows-msvc.swiftinterface",
+            "lib\swift\windows\CRT.swiftmodule\i686-unknown-windows-msvc.swiftinterface",
+            "lib\swift\windows\CRT.swiftmodule\aarch64-unknown-windows-msvc.swiftinterface"
+          )
+
+          # Fix swiftinterface files
+          foreach ($file in $files) {
+            $fullPath = "$SwiftPath\$file"
+            if (Test-Path $fullPath) {
+              (Get-Content $fullPath) -replace "(@_exported import ucrt)", "`$1`n@_exported import _stddef`n@_exported import _stdlib" | Set-Content $fullPath
+              Write-Output "✅ Updated: $fullPath"
+            } else {
+              Write-Output "⚠️ File not found: $fullPath"
+            }
+          }
+
+          # Download ucrt.modulemap
+          $modulemapUrl = "https://raw.githubusercontent.com/swiftlang/swift/a4293deb5109000a251f0904ab9c691b3e27535e/stdlib/public/Platform/ucrt.modulemap"
+          $destination = "$SwiftPath\share\ucrt.modulemap"
+
+          Invoke-WebRequest -Uri $modulemapUrl -OutFile $destination
+          Write-Output "✅ Downloaded ucrt.modulemap to: $destination"
+
       - uses: actions/checkout@v4
         with:
           submodules: true
@@ -91,9 +111,9 @@ jobs:
       - name: Build
         run: |
           $Env:LLAMA_MOCK=1
-          swift build -Xswiftc -strict-concurrency=complete -Xswiftc -windows-sdk-version -Xswiftc ${{ env.WORKAROUND_WINDOWS_SDK_VERSION }} -v
+          swift build -Xswiftc -strict-concurrency=complete
       - name: Run tests
-        run: swift test -c release -Xswiftc -strict-concurrency=complete -Xswiftc -windows-sdk-version -Xswiftc ${{ env.WORKAROUND_WINDOWS_SDK_VERSION }}  -v
+        run: swift test -c release -Xswiftc -strict-concurrency=complete
   android-build:
     # from: finagolfin/swift-android-sdk
     name: Swift on android

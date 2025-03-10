@@ -65,26 +65,7 @@ jobs:
         shell: pwsh
         run: |
           $SwiftPath = "$env:APPDATA\..\Local\Programs\Swift\Platforms\6.0.2\Windows.platform\Developer\SDKs\Windows.sdk\usr"
-
-          $files = @(
-            "lib\swift\windows\CRT.swiftmodule\x86_64-unknown-windows-msvc.swiftinterface",
-            "lib\swift\windows\CRT.swiftmodule\i686-unknown-windows-msvc.swiftinterface",
-            "lib\swift\windows\CRT.swiftmodule\aarch64-unknown-windows-msvc.swiftinterface"
-          )
-
-          # Fix swiftinterface files
-          foreach ($file in $files) {
-            $fullPath = "$SwiftPath\$file"
-            if (Test-Path $fullPath) {
-              (Get-Content $fullPath) -replace "(@_exported import ucrt)", "`$1`n@_exported import _stddef`n@_exported import _stdlib" | Set-Content $fullPath
-              Write-Output "✅ Updated: $fullPath"
-            } else {
-              Write-Output "⚠️ File not found: $fullPath"
-            }
-          }
-
-          # Download ucrt.modulemap
-          $modulemapUrl = "https://raw.githubusercontent.com/swiftlang/swift/a4293deb5109000a251f0904ab9c691b3e27535e/stdlib/public/Platform/ucrt.modulemap"
+          $modulemapUrl = "https://gist.githubusercontent.com/fkunn1326/ef8be2217082302b291f2b8d4178194a/raw/c424968c250afcd5afa1131aea1329dc0744a7f9/ucrt.modulemap"
           $destination = "$SwiftPath\share\ucrt.modulemap"
 
           Invoke-WebRequest -Uri $modulemapUrl -OutFile $destination
@@ -95,21 +76,27 @@ jobs:
           submodules: true
       # - name: Clone llama.cpp
       #   run: git clone -b ku-nlp/gpt2-japanese-char https://github.com/ensan-hcl/llama.cpp.git
-      - name: Debug Build
-        uses: NyaMisty/vscode-server-action@main
-        with:
-          machineName: Actions # optional, default: GitHub workflow run ID
-          timeout: '30000'       # optional, default: 30000
-      # - name: Build llama.cpp
-      #   run: |
-      #     cmake -B build -DBUILD_SHARED_LIBS=ON
-      #     cmake --build build --config Release
-      #   working-directory: ./llama.cpp
-      # - name: Copy built files
-      #   run: |
-      #     cp ./build/bin/Release/llama.dll ../
-      #     cp ./build/Release/llama.lib ../
-      #   working-directory: ./llama.cpp
+      # - name: Debug Build
+      #   uses: NyaMisty/vscode-server-action@main
+      #   with:
+      #     machineName: Actions # optional, default: GitHub workflow run ID
+      #     timeout: '30000'       # optional, default: 30000
+      - name: Download pre-built llama.cpp binaries
+        shell: pwsh
+        run: |
+          $zipUrl = "https://github.com/fkunn1326/llama.cpp/releases/download/b4844/llama-b4844-bin-win-avx-x64.zip"
+          $zipPath = "llama-cpp-bin.zip"
+          Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath
+          Expand-Archive -Path $zipPath -DestinationPath llama-cpp-bin
+          
+      - name: Copy llama.cpp binaries
+        shell: pwsh
+        run: |
+          Copy-Item -Path "llama-cpp-bin/llama.dll" -Destination "./"
+          Copy-Item -Path "llama-cpp-bin/llama.lib" -Destination "./"
+          Copy-Item -Path "llama-cpp-bin/ggml.dll" -Destination "./"
+          Copy-Item -Path "llama-cpp-bin/ggml-*.dll" -Destination "./"
+
       - name: Build
         run: |
           $Env:LLAMA_MOCK=1

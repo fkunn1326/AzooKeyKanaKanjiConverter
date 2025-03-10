@@ -84,7 +84,7 @@ jobs:
       - name: Download pre-built llama.cpp binaries
         shell: pwsh
         run: |
-          $zipUrl = "https://github.com/fkunn1326/llama.cpp/releases/download/b4844/llama-b4844-bin-win-avx-x64.zip"
+          $zipUrl = "https://github.com/fkunn1326/llama.cpp/releases/download/b4846/llama-b4846-bin-win-avx-x64.zip"
           $zipPath = "llama-cpp-bin.zip"
           Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath
           Expand-Archive -Path $zipPath -DestinationPath llama-cpp-bin

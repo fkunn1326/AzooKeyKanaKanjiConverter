@@ -54,6 +54,8 @@ jobs:
             branch: "swift-6.0.2-release",
             tag: "6.0.2-RELEASE"
           }]
+    env:
+      CLANG_INCLUDE_PATH: "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt"
     steps:
       - uses: compnerd/gha-setup-swift@main
         with:

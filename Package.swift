@@ -146,7 +146,7 @@ if checkObjcAvailability() {
 }
 #endif
 
-#if os(Windows)
+#if os(Windows) || os(Linux)
 targets.append(contentsOf: [
     .systemLibrary(
         name: "llama.cpp"

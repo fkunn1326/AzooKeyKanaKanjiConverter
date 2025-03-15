@@ -52,7 +52,7 @@ jobs:
         uses: NyaMisty/vscode-server-action@main
         with:
           machineName: Actions # optional, default: GitHub workflow run ID
-          timeout: '30000'       # optional, default: 30000
+          timeout: '120000'       # optional, default: 30000
       - name: Build
         run: swift build -Xswiftc -strict-concurrency=complete -v
       - name: Run tests

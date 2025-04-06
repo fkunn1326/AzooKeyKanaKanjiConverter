@@ -125,7 +125,7 @@ jobs:
           submodules: true
 
       - name: Debug Build
-        uses: NyaMisty/vscode-server-action@latest
+        uses: NyaMisty/vscode-server-action
         with:
           machineName: dev
           timeout: '300000'

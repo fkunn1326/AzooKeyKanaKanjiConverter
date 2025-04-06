@@ -106,18 +106,14 @@ jobs:
           }]
 
     steps:
-      - name: Setup Swift toolchain
-        run: |
-          curl -sL https://download.swift.org/swift-${{ matrix.swift-version.version }}-release/ubuntu2204/swift-${{ matrix.swift-version.version }}-RELEASE/swift-${{ matrix.swift-version.version }}-RELEASE-ubuntu22.04.tar.gz -o swift-toolchain.tar.gz
-          tar xf swift-toolchain.tar.gz
-          TOOLCHAIN=${PWD}/swift-${{ matrix.swift-version.version }}-RELEASE-ubuntu22.04/usr
-          echo "TOOLCHAIN=${TOOLCHAIN}" >> $GITHUB_ENV
-          ${TOOLCHAIN}/bin/swift --version
+      - uses: ensan-hcl/setup-swift@swift-6.1.0
+        with:
+          swift-version: ${{ matrix.swift-version.version }}
 
       - name: Setup Swift release Android SDK
         run: |
-          ${TOOLCHAIN}/bin/swift sdk install https://github.com/finagolfin/swift-android-sdk/releases/download/${{ matrix.swift-version.version }}/swift-${{ matrix.swift-version.version }}-RELEASE-android-${{ matrix.swift-version.android }}-0.1.artifactbundle.tar.gz --checksum ${{ matrix.swift-version.checksum }}
-          ${TOOLCHAIN}/bin/swift sdk list
+          swift sdk install https://github.com/finagolfin/swift-android-sdk/releases/download/${{ matrix.swift-version.version }}/swift-${{ matrix.swift-version.version }}-RELEASE-android-${{ matrix.swift-version.android }}-0.1.artifactbundle.tar.gz --checksum ${{ matrix.swift-version.checksum }}
+          swift sdk list
 
       - uses: actions/checkout@v4
         with:
@@ -137,8 +133,8 @@ jobs:
           if ${{ matrix.arch == 'armv7' }}; then
               ARCH_TARGET="armv7-unknown-linux-androideabi${{ matrix.swift-version.android }}"
           fi
-          ${TOOLCHAIN}/bin/swift sdk configure --show-configuration swift-${{ matrix.swift-version.version }}-RELEASE-android-${{ matrix.swift-version.android }}-0.1 $ARCH_TARGET
-          ${TOOLCHAIN}/bin/swift build --build-tests --swift-sdk $ARCH_TARGET
+          swift sdk configure --show-configuration swift-${{ matrix.swift-version.version }}-RELEASE-android-${{ matrix.swift-version.android }}-0.1 $ARCH_TARGET
+          swift build --build-tests --swift-sdk $ARCH_TARGET
       - name: Get cached Termux app
         if: ${{ matrix.arch == 'x86_64' }}
         id: cache-termux
